@@ -5,8 +5,7 @@ const router = require('./lib/router');
 
 const basic = auth.basic({
   realm: 'Enter username and password.',
-  file: './.htpasswd',
-  algorithm: 'MD5'
+  file: './users.htpasswd'
 });
 
 const server = http.createServer(basic.check((req, res) => {

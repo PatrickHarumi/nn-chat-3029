@@ -17,6 +17,7 @@ dayjs.extend(timezone);
 dayjs.extend(relativeTime);
 dayjs.tz.setDefault('Asia/Tokyo');
 const crypto = require('node:crypto');
+
 const oneTimeTokenMap = new Map(); // キーをユーザ名、値をトークンとする連想配列
 
 async function handle(req, res) {
@@ -27,8 +28,7 @@ async function handle(req, res) {
   switch (req.method) {
     case 'GET':
       res.writeHead(200, {
-        'Content-Type': 'text/html; charset=utf-8' /*,
-        'Content-Security-Policy': "default-src 'self'; script-src https://* http://localhost:8000/; style-src https://* http://localhost:8000/; font-src https://*;" */
+        'Content-Type': 'text/html; charset=utf-8'
       });
       const posts = await prisma.post.findMany({
         orderBy: {
@@ -39,7 +39,6 @@ async function handle(req, res) {
         post.relativeCreatedAt = dayjs(post.createdAt).tz().fromNow();
         post.absoluteCreatedAt = dayjs(post.createdAt).tz().format('YYYY年MM月DD日 HH時mm分ss秒');
       });
-      //res.end(pug.renderFile('./views/posts.pug', { currentTheme, posts, user: req.user }));
       const oneTimeToken = crypto.randomBytes(8).toString('hex');
       oneTimeTokenMap.set(req.user, oneTimeToken);
       res.end(pug.renderFile('./views/posts.pug', {
@@ -106,22 +105,7 @@ function handleDelete(req, res) {
         body += chunk;
       }).on('end', async () => {
         const params = new URLSearchParams(body);
-        const idAndToken = JSON.parse(params.get('idAndToken'));
-        const id = parseInt(idAndToken.id);
-        const requestedOneTimeToken = idAndToken.token;
-        //console.info(`id = ${id} , requestedOneTimeToken = ${requestedOneTimeToken}`);
-        if (!id) {
-          handleRedirectPosts(req, res);
-          return;
-        }
-        if (!requestedOneTimeToken) {
-          util.handleBadRequest(req, res);
-          return;
-        }
-        if (oneTimeTokenMap.get(req.user) !== requestedOneTimeToken) {
-          util.handleBadRequest(req, res);
-          return;
-        }
+        const id = parseInt(params.get('id'));
         const post = await prisma.post.findUnique({
           where: { id }
         });
@@ -134,7 +118,6 @@ function handleDelete(req, res) {
               `remoteAddress: ${req.socket.remoteAddress}, ` +
               `userAgent: ${req.headers['user-agent']} `
           );
-          oneTimeTokenMap.delete(req.user);
           handleRedirectPosts(req, res);
         }
       });
